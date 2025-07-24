@@ -1,0 +1,4 @@
+├── tests/                            # Unit + integration tests
+│   ├── conftest.py                   # Pytest config
+│   ├── test_ai_agent.py
+│   └── test_gcp_fetcher.py
