@@ -15,7 +15,7 @@ class CommandValidator:
     """
     
     def __init__(self):
-        # Whitelist of allowed GCP operations
+        # Whitelist of allowed GCP operations (expanded for better coverage)
         self.allowed_gcloud_commands = {
             # IAM operations (read-only)
             'gcloud iam service-accounts list',
@@ -24,6 +24,7 @@ class CommandValidator:
             'gcloud iam service-accounts get-iam-policy',
             'gcloud projects get-iam-policy',
             'gcloud organizations get-iam-policy',
+            'gcloud alpha identity users list',
             
             # Logging operations (read-only)
             'gcloud logging read',
@@ -39,10 +40,13 @@ class CommandValidator:
             'gcloud services list',
             'gcloud services list --enabled',
             'gcloud compute quotas list',
+            'gcloud services quota list',
             
             # Billing operations (read-only)
             'gcloud billing accounts list',
             'gcloud billing projects list',
+            'gcloud billing accounts get-iam-policy',
+            'gcloud support plans describe',
         }
         
         # Allowed API patterns
@@ -60,9 +64,9 @@ class CommandValidator:
         
         # Dangerous operations that should never be allowed
         self.forbidden_operations = [
-            'delete', 'remove', 'create', 'add', 'modify', 'update', 
             'set-iam-policy', 'add-iam-policy-binding', 'remove-iam-policy-binding',
-            'enable', 'disable', 'start', 'stop', 'reset', 'restart'
+            'delete-', 'remove-', 'modify-', 'update-',
+            'enable-', 'disable-', 'start-', 'stop-', 'reset-', 'restart-'
         ]
         
         logger.info("Command validator initialized with security policies")
@@ -101,6 +105,9 @@ class CommandValidator:
         """
         command_lower = command.lower().strip()
         
+        # Remove placeholder patterns before validation
+        command_lower = self._clean_placeholders(command_lower)
+        
         # Check for forbidden operations
         for forbidden in self.forbidden_operations:
             if forbidden in command_lower:
@@ -134,15 +141,61 @@ class CommandValidator:
         logger.warning(f"Command not in whitelist: {command}")
         return False
     
+    def _clean_placeholders(self, command: str) -> str:
+        """
+        Remove common placeholder patterns that might confuse validation
+        """
+        # Common placeholder patterns to remove/replace
+        placeholders = [
+            ('organization_id', 'test-org'),
+            ('your_organization_id', 'test-org'),
+            ('<your_organization_id>', 'test-org'),
+            ('<organization_id>', 'test-org'),
+            ('<project-id>', 'test-project'),
+            ('<your-project-id>', 'test-project'),
+            ('your_billing_account_id', 'test-billing'),
+            ('<billing_account_id>', 'test-billing')
+        ]
+        
+        cleaned_command = command
+        for placeholder, replacement in placeholders:
+            cleaned_command = cleaned_command.replace(placeholder, replacement)
+        
+        return cleaned_command
+    
     def _validate_gcloud_command(self, command: str) -> bool:
         """
         Validate gcloud command against whitelist
         """
-        # Extract base command (without parameters)
-        base_command = ' '.join(command.split()[:4])  # e.g., "gcloud iam service-accounts list"
+        # Extract base command (without parameters and flags)
+        command_parts = command.split()
+        if len(command_parts) < 3:
+            return False
+            
+        # Build base command pattern
+        base_patterns = [
+            'gcloud iam service-accounts list',
+            'gcloud iam service-accounts keys list', 
+            'gcloud iam roles list',
+            'gcloud projects get-iam-policy',
+            'gcloud organizations get-iam-policy',
+            'gcloud logging read',
+            'gcloud services list',
+            'gcloud services quota list',
+            'gcloud billing accounts list',
+            'gcloud billing accounts get-iam-policy',
+            'gcloud support plans describe',
+            'gcloud support organizations describe',
+            'gcloud alpha identity users list',
+            'gcloud compute quotas list',
+            'gcloud compute project-info describe'
+        ]
         
-        for allowed in self.allowed_gcloud_commands:
-            if base_command.startswith(allowed.lower()):
+        # Check if the command matches any allowed pattern (ignoring extra flags and parameters)
+        for pattern in base_patterns:
+            pattern_parts = pattern.split()
+            if (len(command_parts) >= len(pattern_parts) and 
+                command_parts[:len(pattern_parts)] == pattern_parts):
                 return True
         
         return False

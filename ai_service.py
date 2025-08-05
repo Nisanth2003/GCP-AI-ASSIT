@@ -187,20 +187,30 @@ class GeminiProvider(BaseAIProvider):
         2. If the query doesn't match any audit type, use "unsupported_query"
         3. Extract time periods (days) from queries when mentioned
         4. Always provide safe, read-only operations only
+        5. NEVER use placeholder values like ORGANIZATION_ID, YOUR_PROJECT_ID, etc.
+        6. Use actual function calls instead of gcloud commands when possible
+
+        For each audit type, use these EXACT patterns:
+        - inactive_users: ["check_inactive_users"]
+        - mfa_status: ["check_mfa_status"]  
+        - key_rotation: ["check_key_rotation"]
+        - service_quotas: ["get_service_quotas"]
+        - support_plan: ["get_support_plan"]
+        - admin_policies: ["list_admin_policies"]
 
         Respond with JSON in this exact format:
         {
             "audit_type": "one of the types above or unsupported_query",
-            "commands": ["list of safe gcloud commands or API calls"],
+            "commands": ["use function names from patterns above"],
             "parameters": {"key": "value pairs for the audit function"},
             "description": "human readable description of what will be audited"
         }
 
         Examples:
-        - "show inactive users for 90 days" → audit_type: "inactive_users", parameters: {"days": 90}
-        - "list users without MFA" → audit_type: "mfa_status"
-        - "check old service account keys" → audit_type: "key_rotation"
-        - "what's my support plan" → audit_type: "support_plan"
+        - "show inactive users for 90 days" → audit_type: "inactive_users", commands: ["check_inactive_users"], parameters: {"days": 90}
+        - "list users without MFA" → audit_type: "mfa_status", commands: ["check_mfa_status"]
+        - "check old service account keys" → audit_type: "key_rotation", commands: ["check_key_rotation"]
+        - "what's my support plan" → audit_type: "support_plan", commands: ["get_support_plan"]
         """
         
         try:

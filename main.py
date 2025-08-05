@@ -51,7 +51,7 @@ def main(query: Optional[str], days: int, project: Optional[str], format: str,
         # Initialize configuration with demo project if none provided
         if not project:
             project = "demo-project-12345"
-            click.echo("Using demo project for testing. Use --project flag for your actual GCP project.")
+            click.echo("ℹ️  Using demo project for testing. Use --project flag for your actual GCP project.")
         
         config = Config(project_id=project)
         
@@ -70,7 +70,7 @@ def main(query: Optional[str], days: int, project: Optional[str], format: str,
         
         # Interactive mode if no query provided
         if not query:
-            click.echo("GCP Security Audit Tool")
+            click.echo("🔍 GCP Security Audit Tool")
             click.echo("Enter your audit queries in natural language, or 'exit' to quit.\n")
             
             while True:
@@ -92,7 +92,7 @@ def main(query: Optional[str], days: int, project: Optional[str], format: str,
                     break
                 except Exception as e:
                     logger.error(f"Error processing query: {e}")
-                    click.echo(f"Error: {e}")
+                    click.echo(f"❌ Error: {e}")
         else:
             # Single query mode
             result = process_query(query, ai_service, validator, audit_functions, 
@@ -101,7 +101,7 @@ def main(query: Optional[str], days: int, project: Optional[str], format: str,
             
     except Exception as e:
         logger.error(f"Application error: {e}")
-        click.echo(f"Fatal error: {e}")
+        click.echo(f"❌ Fatal error: {e}")
         sys.exit(1)
 
 
